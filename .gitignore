@@ -1,0 +1,226 @@
+# ============================================
+# GLOBAL IGNORES (Root Level)
+# ============================================
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Editor directories and files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.code-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Session files
+*.session
+*.session.*
+
+# IDE specific
+.history/
+*.swp
+*.swo
+
+# SSL certificates
+*.pem
+*.crt
+*.key
+
+# ============================================
+# BACKEND SPECIFIC IGNORES (backend/)
+# ============================================
+
+# Dependencies
+backend/node_modules/
+backend/package-lock.json
+
+# Environment variables
+backend/.env
+backend/.env.local
+backend/.env.development.local
+backend/.env.production.local
+
+# Build outputs
+backend/dist/
+backend/build/
+
+# TypeScript
+backend/*.tsbuildinfo
+
+# Coverage
+backend/coverage/
+backend/*.lcov
+
+# Logs in backend
+backend/logs/
+backend/*.log
+
+# PostgreSQL data (if storing locally)
+backend/postgres_data/
+
+# ============================================
+# FRONTEND SPECIFIC IGNORES (frontend/)
+# ============================================
+
+# Dependencies
+frontend/node_modules/
+frontend/package-lock.json
+
+# Environment variables
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
+
+# Build outputs
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+frontend/.svelte-kit/
+frontend/.nuxt/
+
+# Vite cache
+frontend/.vite/
+frontend/*.local
+
+# TypeScript
+frontend/*.tsbuildinfo
+
+# Coverage
+frontend/coverage/
+frontend/*.lcov
+
+# Cache directories
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.eslintcache
+frontend/.stylelintcache
+
+# ============================================
+# COMMON IGNORES (Both Backend & Frontend)
+# ============================================
+
+# Dependency directories
+**/node_modules/
+
+# Build outputs (catch-all)
+**/dist/
+**/build/
+**/out/
+
+# Coverage
+**/coverage/
+
+# Environment variables (catch-all)
+**/.env
+**/.env.local
+
+# Logs (catch-all)
+**/*.log
+**/logs/
+
+# ============================================
+# OPTIONAL/ADDITIONAL IGNORES
+# ============================================
+
+# Testing
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+
+# Package manager specific (if not using package-lock.json)
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# If using TypeScript in both
+**/*.js.map
+**/*.css.map
+**/*.d.ts
+
+# If using bundlers
+**/.storybook/
+**/.storybook-static/
+
+# If using Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# If using CI/CD
+.circleci/
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# If using databases (other than PostgreSQL)
+**/mongodb_data/
+**/redis_data/
+**/*.rdb
+**/*.sqlite
+**/*.sqlite3
+
+# If using Python
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
+**/.Python
+**/pip-log.txt
+**/pip-delete-this-directory.txt
+**/.tox/
+**/.coverage
+**/.coverage.*
+**/.cache
+**/nosetests.xml
+**/coverage.xml
+**/*.cover
+**/*.py,cover
+**/.hypothesis/
+**/.pytest_cache/
+**/.python-version
