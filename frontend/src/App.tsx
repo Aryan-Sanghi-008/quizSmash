@@ -2,7 +2,7 @@ import React from "react";
 import { SocketProvider, useSocket } from "./contexts/SocketContext";
 import { useGameState } from "./hooks/useGameState";
 import LandingPage from "./pages/LandingPage";
-import RoomLobby from "./pages/RoomLobby";
+import RoomLobby from "./pages/LobbyPage";
 
 const AppContent: React.FC = () => {
   const { gameState } = useGameState();
