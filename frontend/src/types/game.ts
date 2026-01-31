@@ -8,7 +8,9 @@ export interface Player {
 export interface Question {
   id: string;
   question: string;
+  difficulty: string;
   options: string[];
+  topic: string;
   correctIndex: number;
   round: number;
 }
@@ -18,7 +20,7 @@ export interface Room {
   code: string;
   topic: string;
   difficulty: string;
-  status: 'waiting' | 'active' | 'completed';
+  status: "waiting" | "active" | "completed";
   playerCount: number;
 }
 
@@ -31,6 +33,6 @@ export interface GameState {
   currentQuestion: Question | null;
   currentRound: number;
   totalQuestions: number;
-  gameStatus: 'lobby' | 'playing' | 'finished';
+  gameStatus: "lobby" | "playing" | "finished";
   scores: Record<string, number>;
 }
