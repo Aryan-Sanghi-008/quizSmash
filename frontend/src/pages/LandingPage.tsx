@@ -23,9 +23,16 @@ import {
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isConnected, createRoom, joinRoom, getActiveRooms, connect } =
-    useSocket();
-  const { setRoomState } = useRoom();
+  const {
+    isConnected,
+    createRoom,
+    joinRoom,
+    reconnectToRoom,
+    checkRoom,
+    getActiveRooms,
+    connect,
+  } = useSocket();
+  const { setRoomState, loadFromLocalStorage, clearLocalStorage } = useRoom();
 
   const [activeTab, setActiveTab] = useState<"create" | "join">("create");
   const [username, setUsername] = useState("");
@@ -34,6 +41,7 @@ const LandingPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [_reconnecting, setReconnecting] = useState(false);
 
   // Load active rooms when connected
   useEffect(() => {
@@ -106,6 +114,110 @@ const LandingPage: React.FC = () => {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(text);
+    toast.success("Copied to clipboard!");
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60),
+    );
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  };
+
+  useEffect(() => {
+    const attemptReconnection = async () => {
+      const savedRoom = loadFromLocalStorage();
+      if (savedRoom && savedRoom.roomCode && savedRoom.username) {
+        setReconnecting(true);
+        setUsername(savedRoom.username);
+        setRoomCode(savedRoom.roomCode);
+
+        try {
+          // Check if room still exists and has space
+          const checkResult = await checkRoom(savedRoom.roomCode);
+
+          if (checkResult.success && checkResult.exists) {
+            if (checkResult.room.isFull) {
+              toast.error("Room is full. Please join another room.");
+              clearLocalStorage();
+              setReconnecting(false);
+              return;
+            }
+
+            if (checkResult.room.isExpired) {
+              toast.error("Room has expired. Please create a new one.");
+              clearLocalStorage();
+              setReconnecting(false);
+              return;
+            }
+
+            // Attempt to reconnect
+            const reconnectResult = await reconnectToRoom(
+              savedRoom.roomCode,
+              savedRoom.username,
+            );
+
+            if (reconnectResult.success) {
+              setRoomState({
+                roomCode: reconnectResult.roomCode,
+                playerId: reconnectResult.playerId,
+                username: savedRoom.username,
+                isHost: reconnectResult.isHost,
+                players: reconnectResult.players,
+                status:
+                  reconnectResult.room.status === "active"
+                    ? "playing"
+                    : "waiting",
+                gameState: reconnectResult.gameState,
+              });
+
+              // Redirect based on room status
+              if (reconnectResult.room.status === "active") {
+                navigate("/game", {
+                  state: {
+                    currentQuestion: reconnectResult.currentQuestion,
+                    timeLeft: reconnectResult.timeLeft,
+                  },
+                });
+              } else {
+                navigate("/lobby");
+              }
+
+              toast.success("Reconnected to room!");
+            } else {
+              toast.error("Failed to reconnect: " + reconnectResult.error);
+              clearLocalStorage();
+            }
+          } else {
+            toast.error("Room no longer exists");
+            clearLocalStorage();
+          }
+        } catch (error) {
+          console.error("Reconnection error:", error);
+          toast.error("Failed to reconnect");
+          clearLocalStorage();
+        } finally {
+          setReconnecting(false);
+        }
+      }
+    };
+
+    if (isConnected) {
+      attemptReconnection();
+    }
+  }, [isConnected]);
+
+  // Update joinRoom function to check room availability first
   const handleJoinRoom = async (code?: string) => {
     const joinCode = code || roomCode;
 
@@ -126,6 +238,34 @@ const LandingPage: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // First check room availability
+      const checkResult = await checkRoom(joinCode.toUpperCase());
+
+      if (!checkResult.success) {
+        toast.error("Failed to check room: " + checkResult.error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!checkResult.exists) {
+        toast.error("Room not found");
+        setIsLoading(false);
+        return;
+      }
+
+      if (checkResult.room.isFull) {
+        toast.error("Room is full. Please join another room.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (checkResult.room.isExpired) {
+        toast.error("Room has expired. Please create a new one.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Now join the room
       const response = await joinRoom(joinCode.toUpperCase(), username.trim());
 
       if (response.success) {
@@ -135,10 +275,21 @@ const LandingPage: React.FC = () => {
           username: username.trim(),
           isHost: response.isHost,
           players: response.players,
-          status: "waiting",
+          status: response.room.status === "active" ? "playing" : "waiting",
+          gameState: response.gameState,
         });
 
-        navigate("/lobby");
+        // Redirect based on room status
+        if (response.room.status === "active") {
+          navigate("/game", {
+            state: {
+              currentQuestion: response.currentQuestion,
+              timeLeft: response.timeLeft,
+            },
+          });
+        } else {
+          navigate("/lobby");
+        }
       } else {
         toast.error(response.error || "Failed to join room");
       }
@@ -148,26 +299,6 @@ const LandingPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedCode(text);
-    toast.success("Copied to clipboard!");
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60),
-    );
-
-    if (diffInMinutes < 1) return "Just now";
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
   return (

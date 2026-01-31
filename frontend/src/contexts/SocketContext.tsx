@@ -8,12 +8,24 @@ import React, {
 import { io, Socket } from "socket.io-client";
 import toast from "react-hot-toast";
 
+interface Player {
+  id: string;
+  username: string;
+  score: number;
+  isReady: boolean;
+  isHost: boolean;
+  currentAnswer?: number;
+  hasAnswered?: boolean;
+}
+
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   createRoom: (username: string) => Promise<any>;
   joinRoom: (roomCode: string, username: string) => Promise<any>;
-  leaveRoom: () => void;
+  reconnectToRoom: (roomCode: string, username: string) => Promise<any>;
+  checkRoom: (roomCode: string) => Promise<any>;
+  leaveRoom: () => Promise<any>;
   getActiveRooms: () => Promise<any>;
   connect: () => void;
   disconnect: () => void;
@@ -24,7 +36,9 @@ const SocketContext = createContext<SocketContextType>({
   isConnected: false,
   createRoom: async () => ({ success: false, error: "Not initialized" }),
   joinRoom: async () => ({ success: false, error: "Not initialized" }),
-  leaveRoom: () => {},
+  reconnectToRoom: async () => ({ success: false, error: "Not initialized" }),
+  checkRoom: async () => ({ success: false, error: "Not initialized" }),
+  leaveRoom: async () => ({ success: false, error: "Not initialized" }),
   getActiveRooms: async () => ({ success: false, error: "Not initialized" }),
   connect: () => {},
   disconnect: () => {},
@@ -184,11 +198,64 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
-  const leaveRoom = () => {
-    const socket = socketRef.current;
-    if (socket && isConnected) {
-      socket.emit("leave-room");
-    }
+  const reconnectToRoom = async (roomCode: string, username: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const socket = socketRef.current;
+
+      if (!socket || !isConnected) {
+        reject({ success: false, error: "Not connected to server" });
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        reject({ success: false, error: "Request timeout" });
+      }, 10000);
+
+      socket.emit("reconnect-room", { roomCode, username }, (response: any) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+    });
+  };
+
+  const checkRoom = async (roomCode: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const socket = socketRef.current;
+
+      if (!socket || !isConnected) {
+        reject({ success: false, error: "Not connected to server" });
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        reject({ success: false, error: "Request timeout" });
+      }, 10000);
+
+      socket.emit("check-room", { roomCode }, (response: any) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+    });
+  };
+
+  const leaveRoom = async (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const socket = socketRef.current;
+
+      if (!socket || !isConnected) {
+        reject({ success: false, error: "Not connected to server" });
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        reject({ success: false, error: "Request timeout" });
+      }, 10000);
+
+      socket.emit("leave-room", {}, (response: any) => {
+        clearTimeout(timeout);
+        resolve(response);
+      });
+    });
   };
 
   const getActiveRooms = async (): Promise<any> => {
@@ -227,6 +294,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
         isConnected,
         createRoom,
         joinRoom,
+        reconnectToRoom,
+        checkRoom,
         leaveRoom,
         getActiveRooms,
         connect,

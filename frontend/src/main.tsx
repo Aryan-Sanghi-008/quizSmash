@@ -7,6 +7,7 @@ import { RoomProvider } from "./contexts/RoomContext";
 import LandingPage from "./pages/LandingPage";
 import LobbyPage from "./pages/LobbyPage";
 import "./index.css";
+import GamePage from "./pages/GamePage";
 
 const App: React.FC = () => {
   return (
@@ -14,6 +15,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/lobby" element={<LobbyPage />} />
+        <Route path="/game" element={<GamePage />} />
       </Routes>
     </Router>
   );

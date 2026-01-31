@@ -166,7 +166,7 @@ const LobbyPage: React.FC = () => {
     };
   }, [socket, roomState.roomCode, navigate, setRoomState]);
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (!topic.trim()) {
       toast.error("Please enter a quiz topic", {
         icon: "🎯",
@@ -174,31 +174,51 @@ const LobbyPage: React.FC = () => {
       return;
     }
 
-    if (roomState.players.length < 2) {
-      toast.error("Need at least 2 players to start", {
-        icon: "👥",
-      });
-      return;
-    }
-
     setIsStarting(true);
 
-    // Emit start game event
-    socket?.emit(
-      "start-game",
-      {
-        topic: topic.trim(),
-        difficulty,
-      },
-      (response: any) => {
-        if (!response.success) {
-          toast.error(response.error || "Failed to start game", {
-            icon: "❌",
-          });
-          setIsStarting(false);
+    try {
+      // Emit start game event and wait for response
+      const response = await new Promise<any>((resolve, reject) => {
+        if (!socket) {
+          reject(new Error("Not connected to server"));
+          return;
         }
-      },
-    );
+
+        const timeout = setTimeout(() => {
+          reject(new Error("Server timeout. Please try again."));
+        }, 15000);
+
+        socket.emit(
+          "start-game",
+          {
+            topic: topic.trim(),
+            difficulty,
+          },
+          (response: any) => {
+            clearTimeout(timeout);
+            resolve(response);
+          },
+        );
+      });
+
+      if (response.success) {
+        toast.success("Game started! Loading questions...", {
+          icon: "🚀",
+        });
+        // The game-started event will be received and trigger navigation
+      } else {
+        toast.error(response.error || "Failed to start game", {
+          icon: "❌",
+        });
+        setIsStarting(false);
+      }
+    } catch (error: any) {
+      console.error("Start game error:", error);
+      toast.error(error.message || "Failed to start game", {
+        icon: "❌",
+      });
+      setIsStarting(false);
+    }
   };
 
   const handleLeaveRoom = () => {
@@ -473,9 +493,7 @@ const LobbyPage: React.FC = () => {
               {roomState.isHost ? (
                 <button
                   onClick={handleStartGame}
-                  disabled={
-                    isStarting || roomState.players.length < 2 || !topic.trim()
-                  }
+                  disabled={isStarting || !topic.trim()} // Removed: || roomState.players.length < 2
                   className="w-full bg-gradient-to-r from-primary-500 via-purple-500 to-pink-500 text-white font-bold py-5 px-6 rounded-xl hover:from-primary-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
                 >
                   {isStarting ? (
