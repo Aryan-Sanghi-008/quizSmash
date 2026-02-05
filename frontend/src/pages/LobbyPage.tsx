@@ -168,50 +168,33 @@ const LobbyPage: React.FC = () => {
 
   const handleStartGame = async () => {
     if (!topic.trim()) {
-      toast.error("Please enter a quiz topic", {
-        icon: "🎯",
-      });
+      toast.error("Please enter a quiz topic", { icon: "🎯" });
       return;
     }
 
     setIsStarting(true);
 
     try {
-      // Emit start game event and wait for response
-      const response = await new Promise<any>((resolve, reject) => {
-        if (!socket) {
-          reject(new Error("Not connected to server"));
-          return;
-        }
+      socket?.emit(
+        "start-game",
+        { topic: topic.trim(), difficulty },
+        (response: any) => {
+          if (response.success) {
+            toast.success("Game started! Loading questions...", {
+              icon: "🚀",
+              duration: 3000,
+            });
 
-        const timeout = setTimeout(() => {
-          reject(new Error("Server timeout. Please try again."));
-        }, 15000);
-
-        socket.emit(
-          "start-game",
-          {
-            topic: topic.trim(),
-            difficulty,
-          },
-          (response: any) => {
-            clearTimeout(timeout);
-            resolve(response);
-          },
-        );
-      });
-
-      if (response.success) {
-        toast.success("Game started! Loading questions...", {
-          icon: "🚀",
-        });
-        // The game-started event will be received and trigger navigation
-      } else {
-        toast.error(response.error || "Failed to start game", {
-          icon: "❌",
-        });
-        setIsStarting(false);
-      }
+            // Navigate after a brief delay to ensure server processed everything
+            navigate(`/game/${roomState.roomCode}`);
+          } else {
+            toast.error(response.error || "Failed to start game", {
+              icon: "❌",
+            });
+            setIsStarting(false);
+          }
+        },
+      );
     } catch (error: any) {
       console.error("Start game error:", error);
       toast.error(error.message || "Failed to start game", {

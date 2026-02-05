@@ -379,7 +379,7 @@ async function generateQuestionsWithGemini(topic, difficulty, count = 3) {
 
     // Get the Gemini model - use a valid model name
     const model = genAI.getGenerativeModel({
-      model: "gemini-pro",  // Changed from "gemini-1.5-flash"
+      model: "gemini-2.5-flash", // Changed from "gemini-1.5-flash"
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2000,
@@ -549,10 +549,10 @@ async function moveToNextQuestion(roomCode, currentQuestionNumber, io) {
       gameState.playersAnswered.clear();
 
       // Update room
-      await pool.query(
-        "UPDATE rooms SET current_question = $1 WHERE id = $2",
-        [nextQuestionNumber, room.id],
-      );
+      await pool.query("UPDATE rooms SET current_question = $1 WHERE id = $2", [
+        nextQuestionNumber,
+        room.id,
+      ]);
 
       // Send next question
       io.to(roomCode).emit("new-question", {
@@ -874,6 +874,17 @@ io.on("connection", async (socket) => {
 
         // Get current question if game is active
         let currentQuestion = null;
+        if (room.status === "active") {
+          // Get current question and time remaining
+          const currentTime = Date.now();
+          const questionStartTime = gameState.questionStartTime || currentTime;
+          const timeElapsed = currentTime - questionStartTime;
+          const timeLeft = Math.max(0, 20000 - timeElapsed);
+
+          responseData.currentQuestion = currentQuestion;
+          responseData.timeLeft = Math.ceil(timeLeft / 1000);
+          responseData.questionStartTime = questionStartTime;
+        }
         if (room.status === "active" && gameState) {
           const questionResult = await client.query(
             `SELECT * FROM questions 
@@ -1208,7 +1219,10 @@ io.on("connection", async (socket) => {
           !socket.userData.roomCode ||
           !socket.userData.playerId
         ) {
-          console.error("❌ Unauthorized submit answer attempt:", socket.userData);
+          console.error(
+            "❌ Unauthorized submit answer attempt:",
+            socket.userData,
+          );
           throw new Error("Player not properly joined");
         }
 
@@ -1249,6 +1263,30 @@ io.on("connection", async (socket) => {
               [playerId],
             );
           }
+
+          callback({
+            success: true,
+            isCorrect: isCorrect,
+            // Don't send correctAnswer here yet
+            playerScore: playerResult.rows[0].score,
+            responseTime: responseTime,
+          });
+
+          // Only reveal answer when timer ends
+          // In the timer callback function:
+          setTimeout(async () => {
+            // Send correct answer to all players
+            io.to(roomCode).emit("reveal-answer", {
+              questionNumber: currentQuestionNumber,
+              correctAnswer: question.correct_index,
+              explanation: "Time's up! The correct answer was...",
+            });
+
+            // Then move to next question after delay
+            setTimeout(() => {
+              moveToNextQuestion(roomCode, currentQuestionNumber, io);
+            }, 5000);
+          }, 20000);
 
           // Mark player as answered for this question
           await client.query(

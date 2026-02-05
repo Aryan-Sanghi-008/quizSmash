@@ -16,22 +16,6 @@ const AppContent: React.FC = () => {
     });
   };
 
-  const handleAnswerSelect = (answerIndex: number) => {
-    socket?.emit("submit-answer", {
-      roomCode: gameState.roomCode,
-      playerId: gameState.playerId,
-      questionId: gameState.currentQuestion?.id,
-      answerIndex,
-    });
-  };
-
-  const handleNextQuestion = () => {
-    socket?.emit("next-question", {
-      roomCode: gameState.roomCode,
-      currentRound: gameState.currentRound,
-    });
-  };
-
   // Render based on game state
   if (!gameState.roomCode) {
     return <LandingPage />;
@@ -47,16 +31,6 @@ const AppContent: React.FC = () => {
       />
     );
   }
-
-  // if (gameState.gameStatus === "playing") {
-  //   return (
-  //     <GameScreen
-  //       gameState={gameState}
-  //       onAnswerSelect={handleAnswerSelect}
-  //       onNextQuestion={handleNextQuestion}
-  //     />
-  //   );
-  // }
 
   if (gameState.gameStatus === "finished") {
     return (

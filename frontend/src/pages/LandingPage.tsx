@@ -102,7 +102,7 @@ const LandingPage: React.FC = () => {
           status: "waiting",
         });
 
-        navigate("/lobby");
+        navigate(`/lobby/${response.roomCode}`);
       } else {
         toast.error(response.error || "Failed to create room");
       }
@@ -183,7 +183,7 @@ const LandingPage: React.FC = () => {
 
               // Redirect based on room status
               if (reconnectResult.room.status === "active") {
-                navigate("/game", {
+                navigate(`/game/${reconnectResult.roomCode}`, {
                   state: {
                     currentQuestion: reconnectResult.currentQuestion,
                     timeLeft: reconnectResult.timeLeft,
@@ -269,6 +269,12 @@ const LandingPage: React.FC = () => {
       const response = await joinRoom(joinCode.toUpperCase(), username.trim());
 
       if (response.success) {
+        localStorage.setItem("quizsmash_username", username);
+        localStorage.setItem("quizsmash_playerId", response.playerId);
+        localStorage.setItem("quizsmash_roomCode", roomCode);
+
+        // Navigate to game with room code
+        navigate(`/game/${roomCode.toUpperCase()}`);
         setRoomState({
           roomCode: response.roomCode,
           playerId: response.playerId,
@@ -281,7 +287,7 @@ const LandingPage: React.FC = () => {
 
         // Redirect based on room status
         if (response.room.status === "active") {
-          navigate("/game", {
+          navigate(`/game/${response.roomCode}`, {
             state: {
               currentQuestion: response.currentQuestion,
               timeLeft: response.timeLeft,
